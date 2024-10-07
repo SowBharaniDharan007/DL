@@ -1,0 +1,186 @@
+Q.No:01
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import os  # For directory operations
+import matplotlib.pyplot as plt  # For plotting
+
+# Define the path to save the CSV file
+csv_directory = &#39;D:/DLtask/data&#39;
+csv_file_path = os.path.join(csv_directory, &#39;dummy_sensor_data.csv&#39;)
+
+# Create the directory if it does not exist
+if not os.path.exists(csv_directory):
+    os.makedirs(csv_directory)
+
+# Create a DataFrame with dummy data
+np.random.seed(42)  # For reproducibility
+data = {
+    &#39;sensor_1&#39;: np.random.uniform(0.1, 1.0, 100),  # 100 random numbers between 0.1 and
+1.0
+
+    &#39;sensor_2&#39;: np.random.uniform(0.1, 1.0, 100),  # 100 random numbers between 0.1 and
+1.0
+    &#39;failure&#39;: np.random.randint(0, 2, 100)         # 100 random binary values (0 or 1)
+}
+
+df = pd.DataFrame(data)
+
+# Save the DataFrame as a CSV file
+df.to_csv(csv_file_path, index=False)
+
+# Load the dataset
+data = pd.read_csv(csv_file_path)
+
+# Split the data into features (X) and target label (y)
+X = data.drop(columns=[&#39;failure&#39;])  # Features (drop the label column)
+y = data[&#39;failure&#39;]  # Labels (equipment failure)
+
+# Split the data into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the feature data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Define the neural network model
+model = Sequential()
+
+# Add input layer and first hidden layer
+model.add(Dense(units=64, activation=&#39;relu&#39;, input_dim=X_train.shape[1]))
+
+# Add more hidden layers with dropout for regularization
+model.add(Dense(units=32, activation=&#39;relu&#39;))
+model.add(Dropout(0.3))
+
+model.add(Dense(units=16, activation=&#39;relu&#39;))
+model.add(Dropout(0.2))
+
+# Output layer with sigmoid activation for binary classification
+model.add(Dense(units=1, activation=&#39;sigmoid&#39;))
+
+# Compile the model
+model.compile(optimizer=&#39;adam&#39;, loss=&#39;binary_crossentropy&#39;, metrics=[&#39;accuracy&#39;])
+
+# Train the model
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+
+# Evaluate the model on the test set
+test_loss, test_acc = model.evaluate(X_test, y_test)
+print(f&#39;Test Accuracy: {test_acc}&#39;)
+
+# Plotting the training and validation accuracy and loss
+plt.figure(figsize=(12, 4))
+
+# Plot accuracy
+plt.subplot(1, 2, 1)
+plt.plot(history.history[&#39;accuracy&#39;], label=&#39;Training Accuracy&#39;)
+plt.plot(history.history[&#39;val_accuracy&#39;], label=&#39;Validation Accuracy&#39;)
+plt.title(&#39;Accuracy over Epochs&#39;)
+
+plt.xlabel(&#39;Epochs&#39;)
+plt.ylabel(&#39;Accuracy&#39;)
+plt.legend()
+
+# Plot loss
+plt.subplot(1, 2, 2)
+plt.plot(history.history[&#39;loss&#39;], label=&#39;Training Loss&#39;)
+plt.plot(history.history[&#39;val_loss&#39;], label=&#39;Validation Loss&#39;)
+plt.title(&#39;Loss over Epochs&#39;)
+plt.xlabel(&#39;Epochs&#39;)
+plt.ylabel(&#39;Loss&#39;)
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+Q.No:02
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Input, ReLU,
+BatchNormalization
+import matplotlib.pyplot as plt
+
+# Autoencoder model
+def build_autoencoder(input_shape):
+    # Encoder
+    inputs = Input(shape=input_shape)
+
+    # Encoding layers
+    x = Conv2D(64, (3, 3), strides=2, padding=&#39;same&#39;)(inputs)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    x = Conv2D(128, (3, 3), strides=2, padding=&#39;same&#39;)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    x = Conv2D(256, (3, 3), strides=2, padding=&#39;same&#39;)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    # Decoder
+    x = Conv2DTranspose(256, (3, 3), strides=2, padding=&#39;same&#39;)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    x = Conv2DTranspose(128, (3, 3), strides=2, padding=&#39;same&#39;)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    x = Conv2DTranspose(64, (3, 3), strides=2, padding=&#39;same&#39;)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+
+    # Output layer: Reconstruct high-resolution image
+    outputs = Conv2DTranspose(3, (3, 3), activation=&#39;sigmoid&#39;, padding=&#39;same&#39;)(x)
+
+    # Autoencoder model
+    autoencoder = Model(inputs, outputs)
+    return autoencoder
+
+# Generate synthetic data
+def generate_synthetic_data(num_images, image_shape):
+    return np.random.rand(num_images, *image_shape)  # Random images with pixel values
+in range [0, 1]
+
+# Set input shape (low-resolution 32x32x3 image)
+input_shape = (32, 32, 3)
+
+# Generate synthetic training and validation data
+X_train = generate_synthetic_data(500, input_shape)  # 500 training images
+X_val = generate_synthetic_data(100, input_shape)    # 100 validation images
+
+# Build and compile the autoencoder
+autoencoder = build_autoencoder(input_shape)
+
+autoencoder.compile(optimizer=&#39;adam&#39;, loss=&#39;mse&#39;)
+
+# Train the autoencoder
+history = autoencoder.fit(X_train, X_train, epochs=10, batch_size=32,
+validation_data=(X_val, X_val))
+
+# Visualize original and reconstructed images
+def plot_original_and_reconstructed(autoencoder, images, num_images=5):
+    reconstructed_images = autoencoder.predict(images[:num_images])
+   
+    plt.figure(figsize=(10, 4))
+    for i in range(num_images):
+        # Display original
+        ax = plt.subplot(2, num_images, i + 1)
+        plt.imshow(images[i])
+        plt.axis(&#39;off&#39;)
+       
+        # Display reconstruction
+        ax = plt.subplot(2, num_images, i + 1 + num_images)
+        plt.imshow(reconstructed_images[i])
+        plt.axis(&#39;off&#39;)     
+    plt.show()
+# Select a few images from the validation set to visualize
+plot_original_and_reconstructed(autoencoder, X_val)
